@@ -4,6 +4,7 @@ Scrabble Word Knowledge Trainer: An interactive tool powered by the Gemini API t
 **USES COLLINS DICTIONARY FOR THE BASE WORDS (I.E, INTERNATIONAL PLAY)**
 
 _Word List Credits:_
+
 _https://www.scrabble.org.au/words/ (7-8LW)_
 
 _https://scrabguys.home.blog/ (6LW)_
