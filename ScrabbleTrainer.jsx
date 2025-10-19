@@ -5,7 +5,7 @@ import { Settings, Loader, CheckCircle, XCircle, UploadCloud, Link } from 'lucid
 
 // IMPORTANT: Replace these with the RAW URLs of your hosted .txt files on GitHub.
 const EXTERNAL_URL_MAP = {
-    'EXTERNAL_2': "https://example.com/raw/2_letter_words.txt",
+    'EXTERNAL_2': "https://github.com/kaishx/Scrabble-Trainer/blob/main/2_letter_words.txt",
     'EXTERNAL_3': "https://example.com/raw/3_letter_words.txt",
     'EXTERNAL_4': "https://example.com/raw/4_letter_words.txt",
     'EXTERNAL_5': "https://example.com/raw/5_letter_words.txt",
@@ -17,14 +17,14 @@ const EXTERNAL_URL_MAP = {
 
 // Define word length options. All non-UPLOAD options now use an EXTERNAL source.
 const WORD_LENGTH_OPTIONS = [
-    { label: "2 Letters (External List)", min: 2, max: 2, source: 'EXTERNAL_2' },
-    { label: "3 Letters (External List)", min: 3, max: 3, source: 'EXTERNAL_3' },
-    { label: "4 Letters (External List)", min: 4, max: 4, source: 'EXTERNAL_4' },
-    { label: "5 Letters (External List)", min: 5, max: 5, source: 'EXTERNAL_5' },
-    { label: "6 Letters (External List)", min: 6, max: 6, source: 'EXTERNAL_6' },
-    { label: "7 Letters (External List)", min: 7, max: 7, source: 'EXTERNAL_7' },
-    { label: "8 Letters (External List)", min: 8, max: 8, source: 'EXTERNAL_8' },
-    { label: "9+ Letters (External List)", min: 9, max: 15, source: 'EXTERNAL_9_PLUS' },
+    { label: "2 Letters", min: 2, max: 2, source: 'EXTERNAL_2' },
+    { label: "3 Letters", min: 3, max: 3, source: 'EXTERNAL_3' },
+    { label: "4 Letters", min: 4, max: 4, source: 'EXTERNAL_4' },
+    { label: "5 Letters", min: 5, max: 5, source: 'EXTERNAL_5' },
+    { label: "6 Letters", min: 6, max: 6, source: 'EXTERNAL_6' },
+    { label: "7 Letters", min: 7, max: 7, source: 'EXTERNAL_7' },
+    { label: "8 Letters", min: 8, max: 8, source: 'EXTERNAL_8' },
+    { label: "9+ Letters", min: 9, max: 15, source: 'EXTERNAL_9_PLUS' },
     { label: "Custom File Upload", min: 0, max: 0, source: 'UPLOAD' },
 ];
 
@@ -421,7 +421,7 @@ const App = () => {
             {isCustomUploadSelected && (
                 <div className="space-y-3 p-4 bg-gray-800 rounded-lg border border-gray-700">
                     <label className="block text-sm font-medium text-gray-300 flex items-center">
-                        <UploadCloud className="w-5 h-5 mr-2 text-teal-400" /> Upload Your Word List (.txt)
+                        <UploadCloud className="w-5 h-5 mr-2 text-teal-400" /> Upload Your Word List (.txt) in the following format: (HI HA HE JO ZA SO SI GO DO ME MA)
                     </label>
                     <input
                         type="file"
