@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <!-- Load Babel to transform JSX/ES6 into browser-compatible JavaScript -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Load Tailwind CSS (Correctly placed in the head) -->
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom font import for aesthetics */
@@ -24,10 +24,12 @@
 
     <!-- CRITICAL: type="text/babel" tells the browser to use the Babel library to process this script block -->
     <script type="text/babel">
-        // The entire content of WordKnowledgeTrainer.jsx goes here.
-        // It will be processed by Babel and run by React.
 
-        import React, { useState, useEffect, useCallback, useMemo } from 'react';
+        // FIX: Removed the 'import React, { ... } from "react"' line.
+        // In this CDN environment, React and its hooks are automatically exposed globally.
+        // We ensure all hooks are available by accessing the global React object.
+        const { useState, useEffect, useCallback, useMemo } = React;
+
         // Note: lucide-react icons are mapped to their function components here since imports are tricky with Babel CDN
         const Settings = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.46a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.52a2 2 0 0 1-1 1.73l-.15.08a2 2 0 0 0-.73 2.73l.78 1.46a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.46a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.73v-.52a2 2 0 0 1 1-1.73l.15-.08a2 2 0 0 0 .73-2.73l-.78-1.46a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1 1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
         const Loader = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
@@ -92,7 +94,7 @@
 
         // Generic API caller with backoff and JSON parsing
         const callGeminiApi = async (systemPrompt, userQuery, count) => {
-            const apiKey = ""; 
+            const apiKey = "";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
             const payload = {
@@ -130,7 +132,7 @@
 
                     const result = await response.json();
                     const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-                    
+
                     if (text) {
                         const generatedWords = safeJsonParse(text);
                         return generatedWords;
@@ -156,18 +158,18 @@
 
         const App = () => {
             // State for app flow
-            const [status, setStatus] = useState('SETUP'); 
-            
+            const [status, setStatus] = useState('SETUP');
+
             // State for configuration
-            const [wordCount, setWordCount] = useState(20); 
+            const [wordCount, setWordCount] = useState(20);
             const [selectedLengthIndex, setSelectedLengthIndex] = useState(3); // Default to 5-letter external
-            
+
             // State for fetching/loading/errors
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
 
             // State for the uploaded dictionary file content (for 'UPLOAD' source)
-            const [uploadedDictionary, setUploadedDictionary] = useState(null); 
+            const [uploadedDictionary, setUploadedDictionary] = useState(null);
 
             // Game state
             const [currentWordIndex, setCurrentWordIndex] = useState(0);
@@ -175,7 +177,7 @@
 
             // Derived values
             const wordConfig = WORD_LENGTH_OPTIONS[selectedLengthIndex];
-            const wordsToPick = Math.floor(wordCount / 2); 
+            const wordsToPick = Math.floor(wordCount / 2);
             const currentWord = trainingList[currentWordIndex];
             const isCustomUploadSelected = wordConfig.source === 'UPLOAD';
 
@@ -191,22 +193,22 @@
             // Generic fetch from external URL map
             const fetchExternalDictionary = async (sourceKey, requiredLength) => {
                 const url = EXTERNAL_URL_MAP[sourceKey];
-                
+
                 if (url.includes("example.com")) {
                     throw new Error(`URL for ${requiredLength} letters is a placeholder. Please update EXTERNAL_URL_MAP.`);
                 }
-                
+
                 const response = await fetch(url);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}. Check your GitHub Raw Content URL and CORS configuration.`);
                 }
                 const text = await response.text();
-                
+
                 // Split by newline, filter empty lines, and convert to uppercase
                 const words = text.split('\n')
                                     .map(w => w.trim().toUpperCase())
                                     .filter(w => w.length >= requiredLength); // Filter only words of appropriate length
-                
+
                 if (words.length === 0) {
                     throw new Error(`No usable words found in the external file for length ${requiredLength}.`);
                 }
@@ -227,22 +229,22 @@
                         const words = text.split('\n')
                                             .map(w => w.trim().toUpperCase())
                                             .filter(w => w.length > 0);
-                        
+
                         if (words.length < wordsToPick) {
                             setError(`Uploaded file contains only ${words.length} usable words, which is not enough to create ${wordsToPick} real words.`);
                             return;
                         }
-                        
+
                         // Calculate length metrics for generating plausible fake words later
                         const lengths = words.map(w => w.length);
                         const minLength = Math.min(...lengths);
                         const maxLength = Math.max(...lengths);
 
-                        setUploadedDictionary({ 
-                            words, 
-                            minLength, 
+                        setUploadedDictionary({
+                            words,
+                            minLength,
                             maxLength,
-                            fileName: file.name 
+                            fileName: file.name
                         });
                         setError(null);
 
@@ -272,14 +274,14 @@
                     // --- STEP 1: Get Real Words from the appropriate source ---
                     if (source.startsWith('EXTERNAL')) {
                         const fullList = await fetchExternalDictionary(source, requiredLength);
-                        
+
                         // Filter and select words exactly matching the required length
                         const filteredList = fullList.filter(w => w.length === requiredLength);
 
                         if (filteredList.length < wordsToPick) {
                             throw new Error(`External list only contains ${filteredList.length} words of length ${requiredLength}, but ${wordsToPick} are required.`);
                         }
-                        
+
                         // Randomly select words from the filtered list
                         const shuffledDict = filteredList.sort(() => 0.5 - Math.random());
                         realWords = shuffledDict.slice(0, wordsToPick);
@@ -290,42 +292,42 @@
                         }
                         // When using custom upload, use the average length for generating fake words
                         requiredLengthForFakes = Math.round((uploadedDictionary.minLength + uploadedDictionary.maxLength) / 2);
-                        
+
                         // Randomly select N words from the uploaded list
                         const shuffledDict = [...uploadedDictionary.words].sort(() => 0.5 - Math.random());
                         realWords = shuffledDict.slice(0, wordsToPick);
-                        
+
                         if (realWords.length < wordsToPick) {
                             throw new Error(`Could only extract ${realWords.length} real words from the uploaded list, need ${wordsToPick}.`);
                         }
                     }
-                    
+
                     // --- STEP 2: Get Fake Words from AI ---
                     const fakeWords = await generateFakeWords(requiredLengthForFakes, wordsToPick);
 
                     if (fakeWords.length === 0) {
                         throw new Error("Failed to generate 'Fake' words from AI.");
                     }
-                    
+
                     // --- STEP 3: Combine and Shuffle ---
                     const finalCount = Math.min(realWords.length, fakeWords.length);
                     const finalRealWords = realWords.slice(0, finalCount);
                     const finalFakeWords = fakeWords.slice(0, finalCount);
 
                     let combinedList = [
-                        ...finalRealWords.map(word => ({ 
-                            word, 
-                            isReal: true, 
-                            correct: null, 
-                            userGuess: null, 
+                        ...finalRealWords.map(word => ({
+                            word,
+                            isReal: true,
+                            correct: null,
+                            userGuess: null,
                             source: source === 'UPLOAD' ? 'UPLOAD' : 'EXTERNAL'
                         })),
-                        ...finalFakeWords.map(word => ({ 
-                            word, 
-                            isReal: false, 
-                            correct: null, 
-                            userGuess: null, 
-                            source: 'AI' 
+                        ...finalFakeWords.map(word => ({
+                            word,
+                            isReal: false,
+                            correct: null,
+                            userGuess: null,
+                            source: 'AI'
                         })),
                     ];
 
@@ -334,8 +336,8 @@
                         const j = Math.floor(Math.random() * (i + 1));
                         [combinedList[i], combinedList[j]] = [combinedList[j], combinedList[i]];
                     }
-                    
-                    setWordCount(combinedList.length); 
+
+                    setWordCount(combinedList.length);
                     setTrainingList(combinedList);
                     setCurrentWordIndex(0);
                     setStatus('PLAYING');
@@ -355,9 +357,9 @@
 
                 const isCorrect = currentWord.isReal === guessIsReal;
 
-                const updatedList = trainingList.map((item, index) => 
-                    index === currentWordIndex 
-                        ? { ...item, userGuess: guessIsReal, correct: isCorrect } 
+                const updatedList = trainingList.map((item, index) =>
+                    index === currentWordIndex
+                        ? { ...item, userGuess: guessIsReal, correct: isCorrect }
                         : item
                 );
                 setTrainingList(updatedList);
@@ -403,7 +405,7 @@
                     userGuess: item.userGuess,
                     correctAnswer: item.isReal ? 'Real' : 'Fake'
                 }));
-                
+
                 const wrongWords = allWords.filter(item => !item.isCorrect);
 
                 return {
@@ -435,8 +437,8 @@
                                     key={option.label}
                                     onClick={() => setSelectedLengthIndex(index)}
                                     className={`p-3 text-center text-sm rounded-lg transition-all shadow-md font-semibold
-                                        ${selectedLengthIndex === index 
-                                            ? 'bg-teal-600 text-white ring-2 ring-teal-300' 
+                                        ${selectedLengthIndex === index
+                                            ? 'bg-teal-600 text-white ring-2 ring-teal-300'
                                             : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                         }`}
                                     disabled={isLoading}
@@ -506,7 +508,7 @@
                             **Error:** {error}
                         </div>
                     )}
-                    
+
                     <button
                         onClick={generateTrainingSession}
                         className={`w-full py-3 text-white font-semibold rounded-lg shadow-xl transition duration-150 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-teal-500 focus:ring-opacity-50 flex items-center justify-center
@@ -581,7 +583,7 @@
                     <h2 className="text-4xl font-extrabold text-teal-400 text-center">
                         Training Complete!
                     </h2>
-                    
+
                     <div className="bg-gray-800 p-6 rounded-xl shadow-xl space-y-4 border border-gray-700">
                         <p className="text-3xl font-bold text-white text-center">
                             Final Score: <span className="text-green-400">{results.correct}</span> / {results.total}
@@ -647,8 +649,6 @@
 
             return (
                 <div className="min-h-screen bg-gray-950 text-white font-['Inter'] font-sans flex items-center justify-center p-4">
-                    {/* The Tailwind CDN script was removed from here as it caused a JSX syntax error.
-                        It is already loaded correctly in the document's <head>. */}
                     <div className="w-full max-w-2xl bg-gray-900 p-8 rounded-xl shadow-2xl border border-gray-700">
                         <header className="mb-8 border-b border-gray-800 pb-4 text-center">
                             <h1 className="text-4xl font-extrabold text-white">
@@ -672,4 +672,5 @@
     </script>
 </body>
 </html>
+
 
