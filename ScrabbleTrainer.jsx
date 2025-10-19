@@ -1,1 +1,630 @@
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Settings, Loader, CheckCircle, XCircle, UploadCloud, Link } from 'lucide-react';
 
+// --- CONFIGURATION AND DICTIONARY ---
+
+// IMPORTANT: Replace these with the RAW URLs of your hosted .txt files on GitHub.
+const EXTERNAL_URL_MAP = {
+    'EXTERNAL_2': "https://example.com/raw/2_letter_words.txt",
+    'EXTERNAL_3': "https://example.com/raw/3_letter_words.txt",
+    'EXTERNAL_4': "https://example.com/raw/4_letter_words.txt",
+    'EXTERNAL_5': "https://example.com/raw/5_letter_words.txt",
+    'EXTERNAL_6': "https://example.com/raw/6_letter_words.txt",
+    'EXTERNAL_7': "https://example.com/raw/7_letter_words.txt",
+    'EXTERNAL_8': "https://example.com/raw/8_letter_words.txt",
+    'EXTERNAL_9_PLUS': "https://example.com/raw/9_plus_letter_words.txt",
+};
+
+// Define word length options. All non-UPLOAD options now use an EXTERNAL source.
+const WORD_LENGTH_OPTIONS = [
+    { label: "2 Letters (External List)", min: 2, max: 2, source: 'EXTERNAL_2' },
+    { label: "3 Letters (External List)", min: 3, max: 3, source: 'EXTERNAL_3' },
+    { label: "4 Letters (External List)", min: 4, max: 4, source: 'EXTERNAL_4' },
+    { label: "5 Letters (External List)", min: 5, max: 5, source: 'EXTERNAL_5' },
+    { label: "6 Letters (External List)", min: 6, max: 6, source: 'EXTERNAL_6' },
+    { label: "7 Letters (External List)", min: 7, max: 7, source: 'EXTERNAL_7' },
+    { label: "8 Letters (External List)", min: 8, max: 8, source: 'EXTERNAL_8' },
+    { label: "9+ Letters (External List)", min: 9, max: 15, source: 'EXTERNAL_9_PLUS' },
+    { label: "Custom File Upload", min: 0, max: 0, source: 'UPLOAD' },
+];
+
+// --- UTILITY FUNCTIONS (AI CALLS) ---
+
+const safeJsonParse = (text) => {
+    try {
+        const cleanedText = text.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(cleanedText);
+        if (Array.isArray(parsed) && parsed.every(item => typeof item === 'string')) {
+            return parsed.map(w => w.trim().toUpperCase());
+        }
+    } catch (e) {
+        console.error("Failed to parse AI response as JSON array:", e);
+        return [];
+    }
+    return [];
+}
+
+/**
+ * Generates Fake (Nonsense) words using the AI for all scenarios.
+ * This is the only function that still relies on the Gemini API for word content.
+ */
+const generateFakeWords = async (length, count) => {
+    const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${count} entirely fake, yet phonetically plausible, English words that are exactly ${length} letters long. The words MUST NOT exist in a standard English dictionary. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
+    const userQuery = `Generate ${count} fake words of exactly ${length} letters.`;
+    return await callGeminiApi(systemPrompt, userQuery, count);
+};
+
+// Generic API caller with backoff and JSON parsing
+const callGeminiApi = async (systemPrompt, userQuery, count) => {
+    const apiKey = ""; 
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+    const payload = {
+        contents: [{ parts: [{ text: userQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "ARRAY",
+                items: { type: "STRING" },
+            }
+        },
+    };
+
+    let attempt = 0;
+    const maxRetries = 3;
+
+    while (attempt < maxRetries) {
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                if (response.status === 429 && attempt < maxRetries - 1) {
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    attempt++;
+                    continue;
+                }
+                throw new Error(`API call failed with status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if (text) {
+                const generatedWords = safeJsonParse(text);
+                return generatedWords;
+            }
+            throw new Error("AI response was empty or malformed.");
+
+        } catch (error) {
+            console.error("Gemini API Request Error:", error);
+            if (attempt < maxRetries - 1) {
+                 const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                 await new Promise(resolve => setTimeout(resolve, delay));
+                 attempt++;
+                 continue;
+            }
+            return [];
+        }
+    }
+    return [];
+};
+
+
+// --- MAIN REACT COMPONENT ---
+
+const App = () => {
+    // State for app flow
+    const [status, setStatus] = useState('SETUP'); 
+    
+    // State for configuration
+    const [wordCount, setWordCount] = useState(20); 
+    const [selectedLengthIndex, setSelectedLengthIndex] = useState(3); // Default to 5-letter external
+    
+    // State for fetching/loading/errors
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    // State for the uploaded dictionary file content (for 'UPLOAD' source)
+    const [uploadedDictionary, setUploadedDictionary] = useState(null); 
+
+    // Game state
+    const [currentWordIndex, setCurrentWordIndex] = useState(0);
+    const [trainingList, setTrainingList] = useState([]);
+
+    // Derived values
+    const wordConfig = WORD_LENGTH_OPTIONS[selectedLengthIndex];
+    const wordsToPick = Math.floor(wordCount / 2); 
+    const currentWord = trainingList[currentWordIndex];
+    const isCustomUploadSelected = wordConfig.source === 'UPLOAD';
+
+    const resetGame = () => {
+        setStatus('SETUP');
+        setTrainingList([]);
+        setCurrentWordIndex(0);
+        setError(null);
+    };
+
+    // --- DICTIONARY HANDLING FUNCTIONS ---
+
+    // Generic fetch from external URL map
+    const fetchExternalDictionary = async (sourceKey, requiredLength) => {
+        const url = EXTERNAL_URL_MAP[sourceKey];
+        
+        if (url.includes("example.com")) {
+            throw new Error(`URL for ${requiredLength} letters is a placeholder. Please update EXTERNAL_URL_MAP.`);
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}. Check your GitHub Raw Content URL and CORS configuration.`);
+        }
+        const text = await response.text();
+        
+        // Split by newline, filter empty lines, and convert to uppercase
+        const words = text.split('\n')
+                            .map(w => w.trim().toUpperCase())
+                            .filter(w => w.length >= requiredLength); // Filter only words of appropriate length
+        
+        if (words.length === 0) {
+            throw new Error(`No usable words found in the external file for length ${requiredLength}.`);
+        }
+        return words;
+    };
+
+    // Handler for local file upload (Source: UPLOAD)
+    const handleFileUpload = (event) => {
+        setUploadedDictionary(null);
+        setError(null);
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target.result;
+                const words = text.split('\n')
+                                    .map(w => w.trim().toUpperCase())
+                                    .filter(w => w.length > 0);
+                
+                if (words.length < wordsToPick) {
+                    setError(`Uploaded file contains only ${words.length} usable words, which is not enough to create ${wordsToPick} real words.`);
+                    return;
+                }
+                
+                // Calculate length metrics for generating plausible fake words later
+                const lengths = words.map(w => w.length);
+                const minLength = Math.min(...lengths);
+                const maxLength = Math.max(...lengths);
+
+                setUploadedDictionary({ 
+                    words, 
+                    minLength, 
+                    maxLength,
+                    fileName: file.name 
+                });
+                setError(null);
+
+            } catch (error) {
+                setError("Error processing file: " + error.message);
+            }
+        };
+        reader.onerror = () => {
+            setError("Failed to read file.");
+        };
+        reader.readAsText(file);
+    };
+
+
+    // Main function to generate the session
+    const generateTrainingSession = useCallback(async () => {
+        setStatus('GENERATING');
+        setError(null);
+        setIsLoading(true);
+
+        const source = wordConfig.source;
+        const requiredLength = wordConfig.min;
+        let realWords = [];
+        let requiredLengthForFakes = requiredLength; // Default to the selected word length
+
+        try {
+            // --- STEP 1: Get Real Words from the appropriate source ---
+            if (source.startsWith('EXTERNAL')) {
+                const fullList = await fetchExternalDictionary(source, requiredLength);
+                
+                // Filter and select words exactly matching the required length
+                const filteredList = fullList.filter(w => w.length === requiredLength);
+
+                if (filteredList.length < wordsToPick) {
+                    throw new Error(`External list only contains ${filteredList.length} words of length ${requiredLength}, but ${wordsToPick} are required.`);
+                }
+                
+                // Randomly select words from the filtered list
+                const shuffledDict = filteredList.sort(() => 0.5 - Math.random());
+                realWords = shuffledDict.slice(0, wordsToPick);
+
+            } else if (source === 'UPLOAD') {
+                if (!uploadedDictionary) {
+                    throw new Error("Please upload a custom word file first.");
+                }
+                // When using custom upload, use the average length for generating fake words
+                requiredLengthForFakes = Math.round((uploadedDictionary.minLength + uploadedDictionary.maxLength) / 2);
+                
+                // Randomly select N words from the uploaded list
+                const shuffledDict = [...uploadedDictionary.words].sort(() => 0.5 - Math.random());
+                realWords = shuffledDict.slice(0, wordsToPick);
+                
+                if (realWords.length < wordsToPick) {
+                    throw new Error(`Could only extract ${realWords.length} real words from the uploaded list, need ${wordsToPick}.`);
+                }
+            }
+            
+            // --- STEP 2: Get Fake Words from AI ---
+            const fakeWords = await generateFakeWords(requiredLengthForFakes, wordsToPick);
+
+            if (fakeWords.length === 0) {
+                throw new Error("Failed to generate 'Fake' words from AI.");
+            }
+            
+            // --- STEP 3: Combine and Shuffle ---
+            const finalCount = Math.min(realWords.length, fakeWords.length);
+            const finalRealWords = realWords.slice(0, finalCount);
+            const finalFakeWords = fakeWords.slice(0, finalCount);
+
+            let combinedList = [
+                ...finalRealWords.map(word => ({ 
+                    word, 
+                    isReal: true, 
+                    correct: null, 
+                    userGuess: null, 
+                    source: source === 'UPLOAD' ? 'UPLOAD' : 'EXTERNAL'
+                })),
+                ...finalFakeWords.map(word => ({ 
+                    word, 
+                    isReal: false, 
+                    correct: null, 
+                    userGuess: null, 
+                    source: 'AI' 
+                })),
+            ];
+
+            // Randomly shuffle the order
+            for (let i = combinedList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [combinedList[i], combinedList[j]] = [combinedList[j], combinedList[i]];
+            }
+            
+            setWordCount(combinedList.length); 
+            setTrainingList(combinedList);
+            setCurrentWordIndex(0);
+            setStatus('PLAYING');
+
+        } catch (e) {
+            setError(e.message);
+            setStatus('SETUP');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [wordConfig, wordsToPick, uploadedDictionary]);
+
+
+    // Step 6: Player input and scoring
+    const handleGuess = useCallback((guessIsReal) => {
+        if (status !== 'PLAYING') return;
+
+        const isCorrect = currentWord.isReal === guessIsReal;
+
+        const updatedList = trainingList.map((item, index) => 
+            index === currentWordIndex 
+                ? { ...item, userGuess: guessIsReal, correct: isCorrect } 
+                : item
+        );
+        setTrainingList(updatedList);
+
+        // Check if game is over
+        if (currentWordIndex < updatedList.length - 1) {
+            setCurrentWordIndex(prev => prev + 1);
+        } else {
+            setStatus('REPORT'); // End of game
+        }
+    }, [status, currentWord, trainingList, currentWordIndex]);
+
+    // Keyboard controls for [ and ]
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (status === 'PLAYING') {
+                if (event.key === '[') {
+                    handleGuess(true); // Real
+                } else if (event.key === ']') {
+                    handleGuess(false); // Fake
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [status, handleGuess]);
+
+    // Memoize results for the report screen
+    const results = useMemo(() => {
+        if (status !== 'REPORT' || trainingList.length === 0) return null;
+
+        const total = trainingList.length;
+        const correct = trainingList.filter(item => item.correct).length;
+        const accuracy = total > 0 ? (correct / total * 100).toFixed(1) : 0;
+
+        // Detailed breakdown
+        const allWords = trainingList.map((item, index) => ({
+            id: index,
+            word: item.word,
+            type: item.isReal ? `Real (${item.source})` : 'Fake (AI)',
+            isCorrect: item.correct,
+            userGuess: item.userGuess,
+            correctAnswer: item.isReal ? 'Real' : 'Fake'
+        }));
+        
+        const wrongWords = allWords.filter(item => !item.isCorrect);
+
+        return {
+            total,
+            correct,
+            accuracy,
+            wrongWords
+        };
+    }, [status, trainingList]);
+
+    // --- RENDER FUNCTIONS ---
+
+    // Renders Step 1 & 2 (Setup)
+    const renderSetup = () => (
+        <div className="space-y-8">
+            <h2 className="text-3xl font-extrabold text-teal-400 flex items-center">
+                <Settings className="w-6 h-6 mr-3" /> Training Setup
+            </h2>
+            <p className="text-gray-400">
+                Words for all fixed lengths (2-9+) are sourced from **External Lists** on GitHub. "Fake" words are generated by AI.
+            </p>
+
+            {/* Word Length Selection */}
+            <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Word Source & Length</label>
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-3">
+                    {WORD_LENGTH_OPTIONS.map((option, index) => (
+                        <button
+                            key={option.label}
+                            onClick={() => setSelectedLengthIndex(index)}
+                            className={`p-3 text-center text-sm rounded-lg transition-all shadow-md font-semibold
+                                ${selectedLengthIndex === index 
+                                    ? 'bg-teal-600 text-white ring-2 ring-teal-300' 
+                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                }`}
+                            disabled={isLoading}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
+                {/* External List URL Warning */}
+                {wordConfig.source.startsWith('EXTERNAL') && EXTERNAL_URL_MAP[wordConfig.source].includes("example.com") && (
+                    <p className="text-sm text-yellow-500 mt-2 flex items-center">
+                        <Link className="w-4 h-4 mr-2" /> WARNING: Placeholder URL active. Please update `EXTERNAL_URL_MAP`.
+                    </p>
+                )}
+            </div>
+
+            {/* Custom Upload Input */}
+            {isCustomUploadSelected && (
+                <div className="space-y-3 p-4 bg-gray-800 rounded-lg border border-gray-700">
+                    <label className="block text-sm font-medium text-gray-300 flex items-center">
+                        <UploadCloud className="w-5 h-5 mr-2 text-teal-400" /> Upload Your Word List (.txt)
+                    </label>
+                    <input
+                        type="file"
+                        accept=".txt"
+                        onChange={handleFileUpload}
+                        className="block w-full text-sm text-gray-400
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-gray-700 file:text-teal-300
+                            hover:file:bg-gray-600"
+                    />
+                    {uploadedDictionary && (
+                        <p className="text-sm text-green-400 flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            File **{uploadedDictionary.fileName}** loaded. ({uploadedDictionary.words.length} words found. Length: {uploadedDictionary.minLength} - {uploadedDictionary.maxLength} letters)
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {/* Word Count Slider */}
+            <div>
+                <label htmlFor="wordCount" className="block text-sm font-medium text-gray-300 mb-2">
+                    Total Words to Practice: <span className="font-bold text-teal-400">{wordCount}</span> (Starting {wordsToPick} Real / {wordsToPick} Fake)
+                </label>
+                <input
+                    id="wordCount"
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="10"
+                    value={wordCount}
+                    onChange={(e) => setWordCount(Number(e.target.value))}
+                    className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg focus:outline-none focus:ring-2 focus:ring-teal-500 accent-teal-500"
+                    disabled={isLoading}
+                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1 px-1">
+                    <span>10</span><span>20</span><span>30</span><span>40</span><span>50</span><span>60</span><span>70</span><span>80</span><span>90</span><span>100</span>
+                </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+                <div className="p-4 bg-red-900/50 border border-red-700 text-red-300 rounded-lg">
+                    **Error:** {error}
+                </div>
+            )}
+            
+            <button
+                onClick={generateTrainingSession}
+                className={`w-full py-3 text-white font-semibold rounded-lg shadow-xl transition duration-150 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-teal-500 focus:ring-opacity-50 flex items-center justify-center
+                    ${isLoading || (isCustomUploadSelected && !uploadedDictionary) ? 'bg-gray-600 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700'}`}
+                disabled={isLoading || (isCustomUploadSelected && !uploadedDictionary)}
+            >
+                {isLoading ? (
+                    <Loader className="animate-spin h-5 w-5 mr-3" />
+                ) : (
+                    <>{(isCustomUploadSelected && !uploadedDictionary) ? 'Upload File to Start' : `Start Training Session (${wordCount} Words Total)`}</>
+                )}
+            </button>
+        </div>
+    );
+
+    // Renders 'GENERATING' status
+    const renderGenerating = () => (
+        <div className="flex flex-col items-center justify-center space-y-4 py-20">
+            <Loader className="animate-spin h-10 w-10 text-teal-400" />
+            <p className="text-xl text-gray-300 font-medium">
+                Generating session...
+            </p>
+            <p className="text-sm text-gray-500 text-center">
+                Fetching **{wordsToPick}** Real words (Source: **{wordConfig.source}**) and **{wordsToPick}** Fake words (Source: **AI**).
+            </p>
+        </div>
+    );
+
+    // Renders Step 6 (Playing)
+    const renderPlaying = () => (
+        <div className="flex flex-col items-center space-y-12">
+            <div className="text-center">
+                <p className="text-sm text-teal-300 font-semibold uppercase tracking-widest">
+                    Word {currentWordIndex + 1} of {trainingList.length}
+                </p>
+                <p className="text-gray-400 text-xs mt-1">
+                    Score: <span className="font-bold text-green-400">{trainingList.filter(w => w.correct === true).length}</span> Correct
+                </p>
+            </div>
+
+            {/* The Word Tile */}
+            <div className="bg-gray-800 p-8 rounded-xl shadow-2xl min-w-[300px] transform transition duration-200 border-4 border-gray-700">
+                <h1 className="text-7xl font-mono tracking-widest text-white uppercase select-none">
+                    {currentWord ? currentWord.word : '...'}
+                </h1>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex space-x-6 w-full max-w-lg">
+                <button
+                    onClick={() => handleGuess(true)}
+                    className="flex-1 py-4 px-3 bg-gray-700 border-2 border-gray-600 text-green-400 font-bold rounded-lg shadow-lg hover:bg-gray-600 transition duration-150 active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-green-500/80"
+                >
+                    <span className="text-3xl font-mono"> [ </span> (Real)
+                </button>
+                <button
+                    onClick={() => handleGuess(false)}
+                    className="flex-1 py-4 px-3 bg-gray-700 border-2 border-gray-600 text-red-400 font-bold rounded-lg shadow-lg hover:bg-gray-600 transition duration-150 active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-red-500/80"
+                >
+                    <span className="text-3xl font-mono"> ] </span> (Fake)
+                </button>
+            </div>
+            <p className="text-sm text-gray-500">
+                Keyboard shortcuts: **<kbd className="font-mono bg-gray-700 p-1 rounded">{'['}</kbd>** for Real, **<kbd className="font-mono bg-gray-700 p-1 rounded">{']'}</kbd>** for Fake.
+            </p>
+        </div>
+    );
+
+    // Renders Step 7 (Report)
+    const renderReport = () => (
+        <div className="space-y-8">
+            <h2 className="text-4xl font-extrabold text-teal-400 text-center">
+                Training Complete!
+            </h2>
+            
+            <div className="bg-gray-800 p-6 rounded-xl shadow-xl space-y-4 border border-gray-700">
+                <p className="text-3xl font-bold text-white text-center">
+                    Final Score: <span className="text-green-400">{results.correct}</span> / {results.total}
+                </p>
+                <p className="text-6xl font-extrabold text-white text-center">
+                    <span className="text-teal-400">{results.accuracy}%</span>
+                </p>
+            </div>
+
+            <h3 className="text-2xl font-semibold text-gray-200 pt-4 border-t border-gray-700">
+                Words to Review (Wrong Answers)
+            </h3>
+            <div className="max-h-96 overflow-y-auto bg-gray-800 p-4 rounded-lg shadow-inner border border-gray-700">
+                {results.wrongWords.length === 0 ? (
+                    <p className="text-lg text-green-400 text-center py-4">Perfect score! No words to review.</p>
+                ) : (
+                    <ul className="space-y-2">
+                        {results.wrongWords.map((item) => (
+                            <li key={item.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-sm p-3 rounded-md bg-gray-900 border border-gray-700">
+                                <span className="font-mono text-white text-xl uppercase mb-1 sm:mb-0">{item.word}</span>
+                                <div className="space-y-0.5 sm:space-y-0 sm:flex sm:space-x-4 text-xs">
+                                    <span className="font-semibold text-red-400 flex items-center">
+                                        <XCircle className="w-4 h-4 mr-1" /> You Guessed: {item.userGuess ? 'Real' : 'Fake'}
+                                    </span>
+                                    <span className="font-semibold text-green-400 flex items-center">
+                                        <CheckCircle className="w-4 h-4 mr-1" /> Correct Answer: {item.correctAnswer} ({item.type})
+                                    </span>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            <button
+                onClick={resetGame}
+                className="w-full py-3 bg-teal-600 text-white font-semibold rounded-lg shadow-xl hover:bg-teal-700 transition duration-150 focus:outline-none focus:ring-4 focus:ring-teal-500"
+            >
+                Start a New Session
+            </button>
+        </div>
+    );
+
+    // --- MAIN RENDER ---
+
+    let content;
+    switch (status) {
+        case 'SETUP':
+            content = renderSetup();
+            break;
+        case 'GENERATING':
+            content = renderGenerating();
+            break;
+        case 'PLAYING':
+            content = renderPlaying();
+            break;
+        case 'REPORT':
+            content = renderReport();
+            break;
+        default:
+            content = renderSetup();
+    }
+
+    return (
+        <div className="min-h-screen bg-gray-950 text-white font-['Inter'] font-sans flex items-center justify-center p-4">
+            <script src="https://cdn.tailwindcss.com"></script>
+            <div className="w-full max-w-2xl bg-gray-900 p-8 rounded-xl shadow-2xl border border-gray-700">
+                <header className="mb-8 border-b border-gray-800 pb-4 text-center">
+                    <h1 className="text-4xl font-extrabold text-white">
+                        Word Knowledge <span className="text-teal-400">Trainer</span>
+                    </h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Dynamic Vocabulary Sourcing & Training
+                    </p>
+                </header>
+                {content}
+            </div>
+        </div>
+    );
+};
+
+export default App;
