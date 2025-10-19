@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <!-- Load Babel to transform JSX/ES6 into browser-compatible JavaScript -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Load Tailwind CSS -->
+    <!-- Load Tailwind CSS (Correctly placed in the head) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Custom font import for aesthetics */
@@ -22,7 +22,7 @@
         <!-- The React app will be rendered here -->
     </div>
 
-    <!-- SCRIPT TYPE="TEXT/BABEL" is crucial for Babel to process the JSX -->
+    <!-- CRITICAL: type="text/babel" tells the browser to use the Babel library to process this script block -->
     <script type="text/babel">
         // The entire content of WordKnowledgeTrainer.jsx goes here.
         // It will be processed by Babel and run by React.
@@ -91,7 +91,7 @@
         };
 
         // Generic API caller with backoff and JSON parsing
-        const callGem GeminiApi = async (systemPrompt, userQuery, count) => {
+        const callGeminiApi = async (systemPrompt, userQuery, count) => {
             const apiKey = ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
 
@@ -647,7 +647,8 @@
 
             return (
                 <div className="min-h-screen bg-gray-950 text-white font-['Inter'] font-sans flex items-center justify-center p-4">
-                    <script src="https://cdn.tailwindcss.com"></script>
+                    {/* The Tailwind CDN script was removed from here as it caused a JSX syntax error.
+                        It is already loaded correctly in the document's <head>. */}
                     <div className="w-full max-w-2xl bg-gray-900 p-8 rounded-xl shadow-2xl border border-gray-700">
                         <header className="mb-8 border-b border-gray-800 pb-4 text-center">
                             <h1 className="text-4xl font-extrabold text-white">
@@ -671,3 +672,4 @@
     </script>
 </body>
 </html>
+
