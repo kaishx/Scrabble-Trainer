@@ -442,7 +442,7 @@
                                     onClick={() => setSelectedLengthIndex(index)}
                                     className={`p-3 text-center text-sm rounded-lg transition-all shadow-md font-semibold
                                         ${selectedLengthIndex === index
-                                            ? 'bg-blue-600 text-white ring-2 ring-blue-300'
+                                            ? 'bg-red-600 text-white ring-2 ring-red-300'
                                             : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                         }`}
                                     disabled={isLoading}
@@ -463,7 +463,7 @@
                     {isCustomUploadSelected && (
                         <div className="space-y-3 p-4 bg-gray-800 rounded-lg border border-gray-700">
                             <label className="block text-sm font-medium text-gray-300 flex items-center">
-                                <UploadCloud className="w-5 h-5 mr-2 text-blue-400" /> Upload Your .txt with no symbols, just 1 space between each word in caps e.g HA HE MA ME GO DO: 
+                                <UploadCloud className="w-5 h-5 mr-2 text-red-400" /> Upload Your .txt with no symbols, just 1 space between each word in caps e.g HA HE MA ME GO DO: 
                             </label>
                             <input
                                 type="file"
@@ -473,7 +473,7 @@
                                     file:mr-4 file:py-2 file:px-4
                                     file:rounded-full file:border-0
                                     file:text-sm file:font-semibold
-                                    file:bg-gray-700 file:text-blue-300
+                                    file:bg-gray-700 file:text-red-300
                                     hover:file:bg-gray-600"
                             />
                             {uploadedDictionary && (
@@ -488,7 +488,7 @@
                     {/* Word Count Slider */}
                     <div>
                         <label htmlFor="wordCount" className="block text-sm font-medium text-gray-300 mb-2">
-                            Total Words to Practice: <span className="font-bold text-blue-400">{wordCount}</span> (Starting {wordsToPick} Real / {wordsToPick} Fake)
+                            Total Words to Practice: <span className="font-bold text-red-400">{wordCount}</span> (Starting {wordsToPick} Real / {wordsToPick} Fake)
                         </label>
                         <input
                             id="wordCount"
@@ -498,7 +498,7 @@
                             step="10"
                             value={wordCount}
                             onChange={(e) => setWordCount(Number(e.target.value))}
-                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg focus:outline-none focus:ring-2 focus:ring-blue-500 accent-blue-500"
+                            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer range-lg focus:outline-none focus:ring-2 focus:ring-red-500 accent-red-500"
                             disabled={isLoading}
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-1 px-1">
@@ -515,8 +515,8 @@
 
                     <button
                         onClick={generateTrainingSession}
-                        className={`w-full py-3 text-white font-semibold rounded-lg shadow-xl transition duration-150 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center
-                            ${isLoading || (isCustomUploadSelected && !uploadedDictionary) ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                        className={`w-full py-3 text-white font-semibold rounded-lg shadow-xl transition duration-150 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 flex items-center justify-center
+                            ${isLoading || (isCustomUploadSelected && !uploadedDictionary) ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                         disabled={isLoading || (isCustomUploadSelected && !uploadedDictionary)}
                     >
                         {isLoading ? (
@@ -531,7 +531,7 @@
             // Renders 'GENERATING' status
             const renderGenerating = () => (
                 <div className="flex flex-col items-center justify-center space-y-4 py-20">
-                    <Loader className="animate-spin h-10 w-10 text-blue-400" />
+                    <Loader className="animate-spin h-10 w-10 text-red-400" />
                     <p className="text-xl text-gray-300 font-medium">
                         Generating session...
                     </p>
@@ -545,7 +545,7 @@
             const renderPlaying = () => (
                 <div className="flex flex-col items-center space-y-12">
                     <div className="text-center">
-                        <p className="text-sm text-blue-300 font-semibold uppercase tracking-widest">
+                        <p className="text-sm text-red-300 font-semibold uppercase tracking-widest">
                             Word {currentWordIndex + 1} of {trainingList.length}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
@@ -584,7 +584,7 @@
             // Renders Step 7 (Report)
             const renderReport = () => (
                 <div className="space-y-8">
-                    <h2 className="text-4xl font-extrabold text-blue-400 text-center">
+                    <h2 className="text-4xl font-extrabold text-red-400 text-center">
                         Training Complete!
                     </h2>
 
@@ -593,7 +593,7 @@
                             Final Score: <span className="text-green-400">{results.correct}</span> / {results.total}
                         </p>
                         <p className="text-6xl font-extrabold text-white text-center">
-                            <span className="text-blue-400">{results.accuracy}%</span>
+                            <span className="text-red-400">{results.accuracy}%</span>
                         </p>
                     </div>
 
@@ -624,7 +624,7 @@
 
                     <button
                         onClick={resetGame}
-                        className="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-xl hover:bg-blue-700 transition duration-150 focus:outline-none focus:ring-4 focus:ring-blue-500"
+                        className="w-full py-3 bg-red-600 text-white font-semibold rounded-lg shadow-xl hover:bg-red-700 transition duration-150 focus:outline-none focus:ring-4 focus:ring-red-500"
                     >
                         Start a New Session
                     </button>
@@ -656,7 +656,7 @@
                     <div className="w-full max-w-2xl bg-gray-900 p-8 rounded-xl shadow-2xl border border-gray-700">
                         <header className="mb-8 border-b border-gray-800 pb-4 text-center">
                             <h1 className="text-4xl font-extrabold text-white">
-                                <span className="text-blue-400">Scrabble Trainer</span>
+                                <span className="text-red-400">Scrabble Trainer</span>
                             </h1>
                             <p className="text-sm text-gray-500 mt-1">
                                 Dynamic Vocabulary Sourcing & Training
