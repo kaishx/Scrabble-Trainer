@@ -87,8 +87,8 @@
          * This is the only function that still relies on the Gemini API for word content.
          */
         const generateFakeWords = async (length, count) => {
-            const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${count} entirely fake, yet phonetically plausible, English words that are exactly ${length} letters long. The words MUST NOT exist in the Collins Scrabble dictionary. Please check it against online Sources. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
-            const userQuery = `Generate ${count} fake words of exactly ${length} letters.`;
+            const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${count} entirely fake, yet phonetically plausible, English words that are exactly ${uploadedDictionary.minLength} - ${uploadedDictionary.maxLength} letters long. The words MUST NOT exist in the Collins Scrabble dictionary. Please check it against online Sources. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
+            const userQuery = `Generate ${count} fake words of exactly ${uploadedDictionary.minLength} - ${uploadedDictionary.maxLength} letters.`;
             return await callGeminiApi(systemPrompt, userQuery, count);
         };
 
