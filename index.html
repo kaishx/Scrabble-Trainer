@@ -85,10 +85,12 @@
         /**
          * Generates Fake (Nonsense) words using the AI for all scenarios.
          * This is the only function that still relies on the Gemini API for word content.
+         * * FIX: Now accepts minLength and maxLength as parameters to scope the fake word generation
+         * correctly for both fixed-length and custom upload modes.
          */
-        const generateFakeWords = async (length, count) => {
-            const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${count} entirely fake, yet phonetically plausible, English words that are exactly ${uploadedDictionary.minLength} - ${uploadedDictionary.maxLength} letters long. The words MUST NOT exist in the Collins Scrabble dictionary. Please check it against online Sources. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
-            const userQuery = `Generate ${count} fake words of exactly ${uploadedDictionary.minLength} - ${uploadedDictionary.maxLength} letters.`;
+        const generateFakeWords = async (minLength, maxLength, count) => {
+            const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${count} entirely fake, yet phonetically plausible, English words that are exactly ${minLength} - ${maxLength} letters long. The words MUST NOT exist in the Collins Scrabble dictionary. Please check it against online Sources. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
+            const userQuery = `Generate ${count} fake words of exactly ${minLength} - ${maxLength} letters.`;
             return await callGeminiApi(systemPrompt, userQuery, count);
         };
 
@@ -272,7 +274,9 @@
                 const source = wordConfig.source;
                 const requiredLength = wordConfig.min;
                 let realWords = [];
-                let requiredLengthForFakes = requiredLength; // Default to the selected word length
+                // FIX: Define fake word length range variables
+                let fakeMinLength;
+                let fakeMaxLength;
 
                 try {
                     // --- STEP 1: Get Real Words from the appropriate source ---
@@ -290,12 +294,17 @@
                         const shuffledDict = filteredList.sort(() => 0.5 - Math.random());
                         realWords = shuffledDict.slice(0, wordsToPick);
 
+                        // FIX: For EXTERNAL source, the fake words MUST match the exact length (min=max)
+                        fakeMinLength = requiredLength;
+                        fakeMaxLength = requiredLength;
+
                     } else if (source === 'UPLOAD') {
                         if (!uploadedDictionary) {
                             throw new Error("Please upload a custom word file first.");
                         }
-                        // When using custom upload, use the average length for generating fake words
-                        requiredLengthForFakes = Math.round((uploadedDictionary.minLength + uploadedDictionary.maxLength) / 2);
+                        // FIX: For UPLOAD source, use the full min/max range for fake words
+                        fakeMinLength = uploadedDictionary.minLength;
+                        fakeMaxLength = uploadedDictionary.maxLength;
 
                         // Randomly select N words from the uploaded list
                         const shuffledDict = [...uploadedDictionary.words].sort(() => 0.5 - Math.random());
@@ -307,7 +316,8 @@
                     }
 
                     // --- STEP 2: Get Fake Words from AI ---
-                    const fakeWords = await generateFakeWords(requiredLengthForFakes, wordsToPick);
+                    // FIX: Pass the calculated min/max length for fake words
+                    const fakeWords = await generateFakeWords(fakeMinLength, fakeMaxLength, wordsToPick);
 
                     if (fakeWords.length === 0) {
                         throw new Error("Failed to generate 'Fake' words from AI.");
@@ -674,5 +684,3 @@
         root.render(<App />);
 
     </script>
-</body>
-</html>
