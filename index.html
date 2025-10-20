@@ -472,7 +472,7 @@
             const Header = ({ title }) => (
                 <div className="text-center mb-10">
                     <h1 className="text-4xl sm:text-5xl font-extrabold text-red-500 mb-2">{title}</h1>
-                    <p className="text-gray-400 text-lg">Test your lexicon against the odds.</p>
+                    <p className="text-gray-400 text-lg">Train your Scrabble word vocabulary.</p>
                 </div>
             );
 
@@ -662,7 +662,7 @@
                 case 'SETUP':
                 case 'GENERATING':
                     content = <SetupScreen />;
-                    headerTitle = "Lexi-Sense Trainer";
+                    headerTitle = "Scrabble Trainer";
                     break;
                 case 'PLAYING':
                     content = <PlayingScreen />;
@@ -674,7 +674,7 @@
                     break;
                 default:
                     content = <SetupScreen />;
-                    headerTitle = "Lexi-Sense Trainer";
+                    headerTitle = "Scrabble Trainer";
             }
 
             return (
