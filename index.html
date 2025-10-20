@@ -191,39 +191,148 @@
         };
 
 
-        // --- MAIN REACT COMPONENT ---
-
-        const App = () => {
-            // State for app flow
-            const [status, setStatus] = useState('SETUP');
-
-            // State for configuration
-            const [wordCount, setWordCount] = useState(20);
-            const [selectedLengthIndex, setSelectedLengthIndex] = useState(3); // Default to 5-letter external
-
-            // State for fetching/loading/errors
-            const [isLoading, setIsLoading] = useState(false);
-            const [error, setError] = useState(null);
-
-            // State for the uploaded dictionary file content (for 'UPLOAD' source)
-            const [uploadedDictionary, setUploadedDictionary] = useState(null);
-
-            // Game state
-            const [currentWordIndex, setCurrentWordIndex] = useState(0);
-            const [trainingList, setTrainingList] = useState([]);
-
-            // Derived values
-            const wordConfig = WORD_LENGTH_OPTIONS[selectedLengthIndex];
-            const wordsToPick = Math.floor(wordCount / 2);
-            const currentWord = trainingList[currentWordIndex];
-            const isCustomUploadSelected = wordConfig.source === 'UPLOAD';
-
-            const resetGame = () => {
-                setStatus('SETUP');
-                setTrainingList([]);
-                setCurrentWordIndex(0);
-                setError(null);
+            // 1. Define the source URLs and configuration
+            const EXTERNAL_URL_MAP = {
+                // IMPORTANT: Replace this placeholder URL with your actual GitHub raw .txt file URL
+                REAL_WORDS: 'https://raw.githubusercontent.com/dwyl/english-words/master/words.txt',
             };
+
+            // Simple configuration to simulate selecting a word length (e.g., 5-letter words)
+            const CONFIG = {
+                source: 'REAL_WORDS', // The key from the map above
+                requiredLength: 5,    // The desired length of words to filter
+            };
+
+            // --- DICTIONARY LOADING LOGIC END ---
+            
+            
+            const App = () => {
+                // 2. State variables for dictionary data and loading status
+                const [dictionarySet, setDictionarySet] = useState(new Set());
+                const [isLoading, setIsLoading] = useState(false);
+                const [error, setError] = useState(null);
+            
+                // Placeholder game state (only for display)
+                const [isGameReady, setIsGameReady] = useState(false);
+                const [lastLoadedCount, setLastLoadedCount] = useState(0);
+            
+                // 3. Function to handle fetching and processing the dictionary (useCallback recommended)
+                const loadExternalDictionary = useCallback(async (config) => {
+                    const url = EXTERNAL_URL_MAP[config.source];
+                    if (!url) {
+                        setError("Error: Invalid dictionary source configuration.");
+                        return;
+                    }
+            
+                    setIsLoading(true);
+                    setError(null);
+                    setDictionarySet(new Set()); // Clear old set
+            
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) {
+                            throw new Error(`HTTP status ${response.status}.`);
+                        }
+                        const text = await response.text();
+            
+                        // Processing: Split by newline, trim, uppercase, and filter by required length
+                        const allWords = text.split('\n');
+                        const processedSet = new Set(
+                            allWords
+                                .map(word => word.trim().toUpperCase())
+                                .filter(word => word.length === config.requiredLength)
+                        );
+                        
+                        // Store the result
+                        setDictionarySet(processedSet); 
+                        setLastLoadedCount(processedSet.size);
+                        setIsGameReady(processedSet.size > 0);
+            
+                    } catch (err) {
+                        console.error("Dictionary Load Error:", err);
+                        setError(`Failed to load dictionary: ${err.message}. Check URL and CORS.`);
+                        setDictionarySet(new Set()); 
+                        setIsGameReady(false);
+                    } finally {
+                        setIsLoading(false);
+                    }
+                }, []); // Empty dependency array means this function is created once
+            
+                // 4. useEffect hook to trigger the loading when the component mounts
+                useEffect(() => {
+                    // This runs once when the component is first rendered
+                    loadExternalDictionary(CONFIG);
+                }, [loadExternalDictionary]);
+            
+            
+                // Example function to show how you would use the loaded dictionary
+                // NOTE: This is where you would call your `generateFakeWords` function,
+                // passing `dictionarySet` as the argument.
+                const runWordGenerationExample = () => {
+                    if (!isGameReady || dictionarySet.size === 0) {
+                        // Use a custom message box instead of alert() in a real app
+                        console.log("Dictionary not loaded or is empty.");
+                        return;
+                    }
+            
+                    const exampleWord = Array.from(dictionarySet).at(Math.floor(Math.random() * dictionarySet.size));
+                    console.log(`Successfully accessed dictionary. Example word of length ${CONFIG.requiredLength}: ${exampleWord}`);
+                    
+                    // In your actual app, you would pass dictionarySet to your word generation logic here:
+                    // const fakeWords = generateFakeWords(CONFIG.requiredLength, 100, dictionarySet); 
+                };
+            
+                return (
+                    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans">
+                        <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 space-y-6 border border-indigo-100">
+                            <h1 className="text-3xl font-extrabold text-indigo-600 flex items-center">
+                                <Aperture className="w-8 h-8 mr-2" />
+                                Word Game Dictionary Setup
+                            </h1>
+                            
+                            <p className="text-gray-600">
+                                This component automatically fetches the dictionary from the external GitHub URL and filters it for words of length **{CONFIG.requiredLength}**.
+                            </p>
+            
+                            {/* Status Indicator */}
+                            <div className="p-4 rounded-lg border-l-4 border-indigo-400 bg-indigo-50">
+                                {isLoading && (
+                                    <div className="flex items-center text-indigo-700">
+                                        <Loader className="w-5 h-5 mr-2 animate-spin" />
+                                        Loading dictionary from GitHub...
+                                    </div>
+                                )}
+                                {!isLoading && error && (
+                                    <div className="flex items-center text-red-700 bg-red-100 p-2 rounded">
+                                        <XCircle className="w-5 h-5 mr-2" />
+                                        Error: {error}
+                                    </div>
+                                )}
+                                {!isLoading && !error && isGameReady && (
+                                    <div className="text-green-700">
+                                        ✅ Dictionary Loaded! **{lastLoadedCount}** words of length {CONFIG.requiredLength} available.
+                                    </div>
+                                )}
+                            </div>
+            
+                            {/* Game Action Button */}
+                            <button
+                                onClick={runWordGenerationExample}
+                                disabled={isLoading || !isGameReady}
+                                className={`w-full py-3 px-4 rounded-lg text-white font-semibold transition duration-200 shadow-md ${
+                                    isLoading || !isGameReady 
+                                        ? 'bg-gray-400 cursor-not-allowed' 
+                                        : 'bg-indigo-500 hover:bg-indigo-600 active:bg-indigo-700'
+                                }`}
+                            >
+                                {isLoading ? 'Loading...' : 'Simulate Word Generation (Check Console)'}
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+            
+            export default App;
 
             // --- DICTIONARY HANDLING FUNCTIONS ---
 
