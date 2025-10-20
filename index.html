@@ -192,7 +192,7 @@
 
 
             // 1. Define the source URLs and configuration
-            const EXTERNAL_URL_MAP = {
+            const EXTERNAL_URL_REAL_MAP = {
                 REAL_WORDS: 'https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/all_real_words',
             };
 
@@ -217,7 +217,7 @@
             
                 // 3. Function to handle fetching and processing the dictionary (useCallback recommended)
                 const loadExternalDictionary = useCallback(async (config) => {
-                    const url = EXTERNAL_URL_MAP[config.source];
+                    const url = EXTERNAL_URL_REAL_MAP[config.source];
                     if (!url) {
                         setError("Error: Invalid dictionary source configuration.");
                         return;
