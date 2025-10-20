@@ -81,15 +81,53 @@
             return [];
         }
 
+                // --- NEW DICTIONARY UTILITIES ---
+        
         /**
-         * Generates Fake (Nonsense) words using the AI for all scenarios.
-         * This is the only function that still relies on the Gemini API for word content.
+         * Filters out all words from the 'generatedWords' list that are found 
+         * in the dictionarySet (the Anti-Intersection).
+         * @param {string[]} generatedWords - The list of words returned by the AI.
+         * @param {Set<string>} dictionarySet - The Set containing all valid real words.
+         * @returns {string[]} A new list containing only the fake/bogus words.
          */
-        const generateFakeWords = async (length, count) => {
-            const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${count} entirely fake, yet phonetically plausible, English words that are exactly ${length} letters long. The words MUST NOT exist in the Collins Scrabble dictionary. Please check it against online Sources. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
-            const userQuery = `Generate ${count} fake words of exactly ${length} letters.`;
-            return await callGeminiApi(systemPrompt, userQuery, count);
+        const filterFakeWords = (generatedWords, dictionarySet) => {
+            if (!dictionarySet || dictionarySet.size === 0) {
+                // If the dictionary is not loaded, we have to trust the AI (less ideal)
+                console.warn("Dictionary Set is not loaded for filtering. Trusting AI output.");
+                return generatedWords;
+            }
+            
+            // The anti-intersection logic!
+            return generatedWords.filter(word => {
+                // Keep the word if the dictionary DOES NOT have it.
+                return !dictionarySet.has(word);
+            });
         };
+        
+        
+        /**
+         * Generates Fake (Nonsense) words using the AI, requesting more than needed 
+         * to compensate for filtering out accidentally real words.
+         * This function is now dependent on the main dictionary Set for filtering.
+         */
+        const generateFakeWords = async (length, count, dictionarySet) => {
+            // 1. Calculate how many words to request (over-generation)
+            // Request double the amount to safely cover potential real words and AI errors.
+            const requestCount = count * 2; 
+        
+            const systemPrompt = `You are a creative linguist. Your task is to generate exactly ${requestCount} entirely fake, yet phonetically plausible, English words that are exactly ${length} letters long. The words MUST NOT exist in the Collins Scrabble dictionary or any common dictionary. Provide the response as a JSON array of strings, ONLY the words, no descriptions or extra text.`;
+            const userQuery = `Generate ${requestCount} fake words of exactly ${length} letters.`;
+            
+            // 2. Call the AI
+            const rawGeneratedWords = await callGeminiApi(systemPrompt, userQuery);
+        
+            // 3. Filter using the Anti-Intersection logic
+            const filteredFakeWords = filterFakeWords(rawGeneratedWords, dictionarySet);
+            
+            // 4. Return only the required amount
+            return filteredFakeWords.slice(0, count); 
+        };
+
 
         // Generic API caller with backoff and JSON parsing
         const callGeminiApi = async (systemPrompt, userQuery, count) => {
