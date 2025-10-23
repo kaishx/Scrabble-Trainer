@@ -6,6 +6,7 @@ Scrabble Word Knowledge Trainer: An interactive tool powered by the Gemini API t
 **THIS TOOL IS 98% PERFECT ONLY**
 
 -----------------------------------------------------
+
 _Word List Credits:_
 
 _https://www.scrabble.org.au/words/ (7-8LW)_
@@ -13,6 +14,7 @@ _https://www.scrabble.org.au/words/ (7-8LW)_
 _https://scrabguys.home.blog/ (6LW)_
 
 _https://scrabble.collinsdictionary.com/ (2-5LW)_
+
 -----------------------------------------------------
 
 **bugs: prompt injection, gemini actually generating real words**
