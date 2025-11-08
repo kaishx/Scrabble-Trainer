@@ -1,4 +1,5 @@
-# Scrabble-Trainer
+# scrabbletrainer
+
 Scrabble Word Knowledge Trainer: An interactive tool to practice fake and real word recognition.
 
 **USES COLLINS DICTIONARY FOR THE BASE WORDS (I.E, INTERNATIONAL PLAY)**
