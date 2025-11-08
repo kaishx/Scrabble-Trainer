@@ -1,9 +1,9 @@
 # Scrabble-Trainer
-Scrabble Word Knowledge Trainer: An interactive tool powered by the Gemini API that synthesizes realistic, novel words. Use it to test and train your Scrabble vocabulary by classifying whether each word is real or fake (AI generated)
+Scrabble Word Knowledge Trainer: An interactive tool to practice fake and real word recognition.
 
 **USES COLLINS DICTIONARY FOR THE BASE WORDS (I.E, INTERNATIONAL PLAY)**
 
-**THIS TOOL IS 98% PERFECT ONLY**
+**THIS TOOL IS 98% PERFECT ONLY, SOME FAKE WORDS MAY BE COMPLETE GIBBERISH (IMPOSSIBLE SEQUENCES E.G UWVAQGES) DUE TO THE WAY THEY WERE RETRIEVED**
 
 -----------------------------------------------------
 
@@ -17,4 +17,3 @@ _https://scrabble.collinsdictionary.com/ (2-5LW)_
 
 -----------------------------------------------------
 
-**bugs: prompt injection, gemini actually generating real words**
