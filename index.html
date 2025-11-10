@@ -33,32 +33,32 @@
         // config
 
         const wordlists = {
-            'EXTERNAL_2': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/2_letter_words.txt",
-            'EXTERNAL_3': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/3_letter_words.txt",
-            'EXTERNAL_4': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/4_letter_words.txt",
-            'EXTERNAL_5': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/5_letter_words.txt",
-            'EXTERNAL_6': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/6_letter_words.txt",
-            'EXTERNAL_7': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/7_letter_words.txt",
-            'EXTERNAL_8': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/8_letter_words.txt",
-            'EXTERNAL_FAKE_LIST': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/fake_words.txt",
+            'wordfile_2': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/2_letter_words.txt",
+            'wordfile_3': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/3_letter_words.txt",
+            'wordfile_4': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/4_letter_words.txt",
+            'wordfile_5': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/5_letter_words.txt",
+            'wordfile_6': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/6_letter_words.txt",
+            'wordfile_7': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/7_letter_words.txt",
+            'wordfile_8': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/8_letter_words.txt",
+            'wordfile_fakes_list': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/fake_words.txt",
         };
 
         const wordlength = [
-            { label: "2 Letters", min: 2, max: 2, source: 'EXTERNAL_2' },
-            { label: "3 Letters", min: 3, max: 3, source: 'EXTERNAL_3' },
-            { label: "4 Letters", min: 4, max: 4, source: 'EXTERNAL_4' },
-            { label: "5 Letters", min: 5, max: 5, source: 'EXTERNAL_5' },
-            { label: "6 Letters", min: 6, max: 6, source: 'EXTERNAL_6' },
-            { label: "7 Letters", min: 7, max: 7, source: 'EXTERNAL_7' },
-            { label: "8 Letters", min: 8, max: 8, source: 'EXTERNAL_8' }
+            { label: "2 Letters", min: 2, max: 2, source: 'wordfile_2' },
+            { label: "3 Letters", min: 3, max: 3, source: 'wordfile_3' },
+            { label: "4 Letters", min: 4, max: 4, source: 'wordfile_4' },
+            { label: "5 Letters", min: 5, max: 5, source: 'wordfile_5' },
+            { label: "6 Letters", min: 6, max: 6, source: 'wordfile_6' },
+            { label: "7 Letters", min: 7, max: 7, source: 'wordfile_7' },
+            { label: "8 Letters", min: 8, max: 8, source: 'wordfile_8' }
         ];
 
         
         /**
-         * gets the fake words frm the external_fake_list
+         * gets the fake words frm the wordfile_fakes_list
          */
         const generateFakeWords = async (minLength, maxLength, count) => {
-            const sourceKey = 'EXTERNAL_FAKE_LIST';
+            const sourceKey = 'wordfile_fakes_list';
             const url = wordlists[sourceKey];
 
             if (!url || url.includes("user/repo/branch/fake_words.txt")) {
@@ -90,7 +90,7 @@
             const [status, setStatus] = useState('SETUP');
 
             const [wordCount, setWordCount] = useState(20);
-            const [selectedLengthIndex, setSelectedLengthIndex] = useState(3); 
+            const [chosenlength, setchosenlength] = useState(3); 
 
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
@@ -98,24 +98,23 @@
             const [uploadedDictionary, setUploadedDictionary] = useState(null);
 
             const [currentWordIndex, setCurrentWordIndex] = useState(0);
-            const [trainingList, setTrainingList] = useState([]);
+            const [traininglist, settraininglist] = useState([]);
 
-            const wordConfig = wordlength[selectedLengthIndex];
+            const wordConfig = wordlength[chosenlength];
             const wordsToPick = Math.floor(wordCount / 2);
-            const currentWord = trainingList[currentWordIndex];
+            const currentWord = traininglist[currentWordIndex];
             const isCustomUploadSelected = wordConfig.source === 'UPLOAD';
 
             const resetGame = () => {
                 setStatus('SETUP');
-                setTrainingList([]);
+                settraininglist([]);
                 setCurrentWordIndex(0);
                 setError(null);
             };
 
-            // --- DICTIONARY HANDLING FUNCTIONS ---
 
-            // fetch from external map
-            const fetchExternalDictionary = async (sourceKey, requiredLength) => {
+            // fetch from wordfile map
+            const fetchwordfileDictionary = async (sourceKey, requiredLength) => {
                 const url = wordlists[sourceKey];
 
                 if (url.includes("example.com")) {
@@ -134,7 +133,7 @@
                                     .filter(w => w.length >= requiredLength && w.length <= 15); 
 
                 if (words.length === 0) {
-                    throw new Error(`No usable words found in the external file for length ${requiredLength}.`);
+                    throw new Error(`No usable words found in the wordfile file for length ${requiredLength}.`);
                 }
                 return words;
             };
@@ -189,7 +188,7 @@
             
 
 
-            const generateTrainingSession = useCallback(async () => {
+            const generatesesh = useCallback(async () => {
                 setStatus('GENERATING');
                 setError(null);
                 setIsLoading(true);
@@ -203,14 +202,14 @@
 
                 try {
                     // gets real word
-                    if (source.startsWith('EXTERNAL')) {
-                        const fullList = await fetchExternalDictionary(source, requiredLength);
+                    if (source.startsWith('wordfile')) {
+                        const fullList = await fetchwordfileDictionary(source, requiredLength);
 
                         // with the required length 2-8
                         const filteredList = fullList.filter(w => w.length === requiredLength);
 
                         if (filteredList.length < wordsToPick) {
-                            throw new Error(`External list only contains ${filteredList.length} words of length ${requiredLength}, but ${wordsToPick} are required.`);
+                            throw new Error(`wordfile list only contains ${filteredList.length} words of length ${requiredLength}, but ${wordsToPick} are required.`);
                         }
 
                         const shuffledDict = filteredList.sort(() => 0.5 - Math.random());
@@ -240,7 +239,7 @@
                     const fakeWords = await generateFakeWords(fakeMinLength, fakeMaxLength, wordsToPick);
 
                     if (fakeWords.length === 0) {
-                        throw new Error("Failed to get 'Fake' words from file. Check the external fake word list URL.");
+                        throw new Error("Failed to get 'Fake' words from file. Check the wordfile fake word list URL.");
                     }
 
                     // shuffle em up
@@ -254,7 +253,7 @@
                             isReal: true,
                             correct: null,
                             userGuess: null,
-                            source: source === 'UPLOAD' ? 'UPLOAD' : 'EXTERNAL'
+                            source: source === 'UPLOAD' ? 'UPLOAD' : 'wordfile'
                         })),
                         ...finalFakeWords.map(word => ({
                             word,
@@ -271,7 +270,7 @@
                     }
 
                     setWordCount(combinedList.length);
-                    setTrainingList(combinedList);
+                    settraininglist(combinedList);
                     setCurrentWordIndex(0);
                     setStatus('PLAYING');
 
@@ -290,12 +289,12 @@
 
                 const isCorrect = currentWord.isReal === guessIsReal;
 
-                const updatedList = trainingList.map((item, index) =>
+                const updatedList = traininglist.map((item, index) =>
                     index === currentWordIndex
                         ? { ...item, userGuess: guessIsReal, correct: isCorrect }
                         : item
                 );
-                setTrainingList(updatedList);
+                settraininglist(updatedList);
 
                 // check if game is over
                 if (currentWordIndex < updatedList.length - 1) {
@@ -303,7 +302,7 @@
                 } else {
                     setStatus('REPORT');
                 }
-            }, [status, currentWord, trainingList, currentWordIndex]);
+            }, [status, currentWord, traininglist, currentWordIndex]);
 
             // keybopard controls
             useEffect(() => {
@@ -323,14 +322,14 @@
 
             // keep results for the report screen
             const results = useMemo(() => {
-                if (status !== 'REPORT' || trainingList.length === 0) return null;
+                if (status !== 'REPORT' || traininglist.length === 0) return null;
 
-                const total = trainingList.length;
-                const correct = trainingList.filter(item => item.correct).length;
+                const total = traininglist.length;
+                const correct = traininglist.filter(item => item.correct).length;
                 const accuracy = total > 0 ? (correct / total * 100).toFixed(1) : 0;
 
                 // detailed breakdown of how the player did
-                const allWords = trainingList.map((item, index) => ({
+                const allWords = traininglist.map((item, index) => ({
                     id: index,
                     word: item.word,
                     type: item.isReal ? `Real (${item.source})` : 'Fake (File)', 
@@ -347,7 +346,7 @@
                     accuracy,
                     wrongWords
                 };
-            }, [status, trainingList]);
+            }, [status, traininglist]);
 
 
             const renderSetup = () => (
@@ -365,9 +364,9 @@
                             {wordlength.map((option, index) => (
                                 <button
                                     key={option.label}
-                                    onClick={() => setSelectedLengthIndex(index)}
+                                    onClick={() => setchosenlength(index)}
                                     className={`p-3 text-center text-sm rounded-lg transition-all shadow-md font-semibold
-                                        ${selectedLengthIndex === index
+                                        ${chosenlength === index
                                             ? 'bg-red-600 text-white ring-2 ring-red-300'
                                             : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                                         }`}
@@ -378,15 +377,15 @@
                             ))}
                         </div>
 
-                        {wordConfig.source.startsWith('EXTERNAL') && wordlists[wordConfig.source].includes("example.com") && (
+                        {wordConfig.source.startsWith('wordfile') && wordlists[wordConfig.source].includes("example.com") && (
                             <p className="text-sm text-yellow-500 mt-2 flex items-center">
                                 <Link className="w-4 h-4 mr-2" /> WARNING: Placeholder URL active. Please update `wordlists`.
                             </p>
                         )}
 
-                        {wordlists['EXTERNAL_FAKE_LIST'].includes("user/repo/branch/fake_words.txt") && (
+                        {wordlists['wordfile_fakes_list'].includes("user/repo/branch/fake_words.txt") && (
                             <p className="text-sm text-yellow-500 mt-2 flex items-center">
-                                <Link className="w-4 h-4 mr-2" /> WARNING: Fake word list URL is a placeholder. Please update `EXTERNAL_FAKE_LIST`.
+                                <Link className="w-4 h-4 mr-2" /> WARNING: Fake word list URL is a placeholder. Please update `wordfile_fakes_list`.
                             </p>
                         )}
                     </div>
@@ -449,7 +448,7 @@
                     )}
 
                     <button
-                        onClick={generateTrainingSession}
+                        onClick={generatesesh}
                         className={`w-full py-3 text-white font-semibold rounded-lg shadow-xl transition duration-150 transform hover:scale-[1.01] focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 flex items-center justify-center
                             ${isLoading || (isCustomUploadSelected && !uploadedDictionary) ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                         disabled={isLoading || (isCustomUploadSelected && !uploadedDictionary)}
@@ -479,10 +478,10 @@
                 <div className="flex flex-col items-center space-y-12">
                     <div className="text-center">
                         <p className="text-sm text-red-300 font-semibold uppercase tracking-widest">
-                            Word {currentWordIndex + 1} of {trainingList.length}
+                            Word {currentWordIndex + 1} of {traininglist.length}
                         </p>
                         <p className="text-gray-400 text-xs mt-1">
-                            Score: <span className="font-bold text-green-400">{trainingList.filter(w => w.correct === true).length}</span> Correct
+                            Score: <span className="font-bold text-green-400">{traininglist.filter(w => w.correct === true).length}</span> Correct
                         </p>
                     </div>
 
