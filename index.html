@@ -10,7 +10,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Custom font import for aesthetics */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
     </style>
 </head>
@@ -23,7 +22,6 @@
 
         const { useState, useEffect, useCallback, useMemo } = React;
 
-        // Note: lucide-react icons are mapped to their function components here since imports are tricky with Babel CDN
         const Settings = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.78 1.46a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.73v.52a2 2 0 0 1-1 1.73l-.15.08a2 2 0 0 0-.73 2.73l.78 1.46a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.78-1.46a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.73v-.52a2 2 0 0 1 1-1.73l.15-.08a2 2 0 0 0 .73-2.73l-.78-1.46a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-1 1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
         const Loader = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
         const CheckCircle = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.6-8.23"/><path d="M9 11l3 3L22 4"/></svg>;
@@ -32,10 +30,9 @@
         const Link = (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
 
 
-        // --- CONFIGURATION AND DICTIONARY ---
+        // config
 
-        // IMPORTANT: Replace these with the RAW URLs of your hosted .txt files on GitHub.
-        const EXTERNAL_URL_MAP = {
+        const wordlists = {
             'EXTERNAL_2': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/2_letter_words.txt",
             'EXTERNAL_3': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/3_letter_words.txt",
             'EXTERNAL_4': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/4_letter_words.txt",
@@ -43,12 +40,10 @@
             'EXTERNAL_6': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/6_letter_words.txt",
             'EXTERNAL_7': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/7_letter_words.txt",
             'EXTERNAL_8': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/8_letter_words.txt",
-            // NEW: Add a key for the dedicated fake word list URL
-            'EXTERNAL_FAKE_LIST': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/fake_words.txt", // <--- *** UPDATE THIS URL ***
+            'EXTERNAL_FAKE_LIST': "https://raw.githubusercontent.com/kaishx/scrabbletrainer/refs/heads/main/fake_words.txt",
         };
 
-        // Define word length options. All non-UPLOAD options now use an EXTERNAL source.
-        const WORD_LENGTH_OPTIONS = [
+        const wordlength = [
             { label: "2 Letters", min: 2, max: 2, source: 'EXTERNAL_2' },
             { label: "3 Letters", min: 3, max: 3, source: 'EXTERNAL_3' },
             { label: "4 Letters", min: 4, max: 4, source: 'EXTERNAL_4' },
@@ -58,18 +53,16 @@
             { label: "8 Letters", min: 8, max: 8, source: 'EXTERNAL_8' }
         ];
 
-        // --- UTILITY FUNCTIONS (AI CODE REMOVED) ---
         
         /**
-         * Generates Fake (Nonsense) words by fetching from a raw GitHub text file
-         * and filtering by the required length range.
+         * gets the fake words frm the external_fake_list
          */
         const generateFakeWords = async (minLength, maxLength, count) => {
             const sourceKey = 'EXTERNAL_FAKE_LIST';
-            const url = EXTERNAL_URL_MAP[sourceKey];
+            const url = wordlists[sourceKey];
 
             if (!url || url.includes("user/repo/branch/fake_words.txt")) {
-                throw new Error(`Fake word URL is a placeholder in EXTERNAL_URL_MAP. Please update it to your GitHub raw file.`);
+                throw new Error(`Fake word URL is a placeholder in wordlists. Please update it to your GitHub raw file.`);
             }
 
             const response = await fetch(url);
@@ -78,7 +71,6 @@
             }
             const text = await response.text();
             
-            // Get all words, filter by length range
             const words = text.split(/\s+/)
                                 .map(w => w.trim().toUpperCase())
                                 .filter(w => w.length >= minLength && w.length <= maxLength);
@@ -87,35 +79,28 @@
                 throw new Error(`Fake word list only contains ${words.length} usable words of length ${minLength}-${maxLength}, but ${count} are required.`);
             }
             
-            // Randomly select words
+            // randomly select words
             const shuffledDict = words.sort(() => 0.5 - Math.random());
             return shuffledDict.slice(0, count);
         };
 
 
-        // --- MAIN REACT COMPONENT ---
 
         const App = () => {
-            // State for app flow
             const [status, setStatus] = useState('SETUP');
 
-            // State for configuration
             const [wordCount, setWordCount] = useState(20);
-            const [selectedLengthIndex, setSelectedLengthIndex] = useState(3); // Default to 5-letter external
+            const [selectedLengthIndex, setSelectedLengthIndex] = useState(3); 
 
-            // State for fetching/loading/errors
             const [isLoading, setIsLoading] = useState(false);
             const [error, setError] = useState(null);
 
-            // State for the uploaded dictionary file content (for 'UPLOAD' source)
             const [uploadedDictionary, setUploadedDictionary] = useState(null);
 
-            // Game state
             const [currentWordIndex, setCurrentWordIndex] = useState(0);
             const [trainingList, setTrainingList] = useState([]);
 
-            // Derived values
-            const wordConfig = WORD_LENGTH_OPTIONS[selectedLengthIndex];
+            const wordConfig = wordlength[selectedLengthIndex];
             const wordsToPick = Math.floor(wordCount / 2);
             const currentWord = trainingList[currentWordIndex];
             const isCustomUploadSelected = wordConfig.source === 'UPLOAD';
@@ -129,12 +114,12 @@
 
             // --- DICTIONARY HANDLING FUNCTIONS ---
 
-            // Generic fetch from external URL map
+            // fetch from external map
             const fetchExternalDictionary = async (sourceKey, requiredLength) => {
-                const url = EXTERNAL_URL_MAP[sourceKey];
+                const url = wordlists[sourceKey];
 
                 if (url.includes("example.com")) {
-                    throw new Error(`URL for ${requiredLength} letters is a placeholder. Please update EXTERNAL_URL_MAP.`);
+                    throw new Error(`URL for ${requiredLength} letters is a placeholder. Please update wordlists.`);
                 }
 
                 const response = await fetch(url);
@@ -143,20 +128,18 @@
                 }
                 const text = await response.text();
 
-                // *** FIX APPLIED HERE: Split by any whitespace (spaces, tabs, newlines) ***
-                // This ensures words separated by spaces on a single line are parsed correctly.
+                // makes sure that any words split by any type of whitepsace is counted when previously it would tweakout
                 const words = text.split(/\s+/)
                                     .map(w => w.trim().toUpperCase())
                                     .filter(w => w.length >= requiredLength && w.length <= 15); 
-                                    // Also added an upper limit filter for safety
 
                 if (words.length === 0) {
                     throw new Error(`No usable words found in the external file for length ${requiredLength}.`);
                 }
                 return words;
             };
-
-            // Handler for local file upload (Source: UPLOAD)
+            /**
+            // custom list upload (NOT USING NOW, i realized its kind of... pointless? Who has their own custom list + AI generator (in the past) would be broken by prompt injection through this file so i have decided to remove this deature)
             const handleFileUpload = (event) => {
                 setUploadedDictionary(null);
                 setError(null);
@@ -201,8 +184,11 @@
                 reader.readAsText(file);
             };
 
+            */
 
-            // Main function to generate the session
+            
+
+
             const generateTrainingSession = useCallback(async () => {
                 setStatus('GENERATING');
                 setError(null);
@@ -211,31 +197,29 @@
                 const source = wordConfig.source;
                 const requiredLength = wordConfig.min;
                 let realWords = [];
-                // Define fake word length range variables
+                
                 let fakeMinLength;
                 let fakeMaxLength;
 
                 try {
-                    // --- STEP 1: Get Real Words from the appropriate source ---
+                    // gets real word
                     if (source.startsWith('EXTERNAL')) {
                         const fullList = await fetchExternalDictionary(source, requiredLength);
 
-                        // Filter and select words exactly matching the required length
+                        // with the required length 2-8
                         const filteredList = fullList.filter(w => w.length === requiredLength);
 
                         if (filteredList.length < wordsToPick) {
                             throw new Error(`External list only contains ${filteredList.length} words of length ${requiredLength}, but ${wordsToPick} are required.`);
                         }
 
-                        // Randomly select words from the filtered list
                         const shuffledDict = filteredList.sort(() => 0.5 - Math.random());
                         realWords = shuffledDict.slice(0, wordsToPick);
 
-                        // For EXTERNAL source, the fake words MUST match the exact length (min=max)
                         fakeMinLength = requiredLength;
                         fakeMaxLength = requiredLength;
-
-                    } else if (source === 'UPLOAD') {
+                    
+                    } /* else if (source === 'UPLOAD') { //another one related to the useless custom upload list
                         if (!uploadedDictionary) {
                             throw new Error("Please upload a custom word file first.");
                         }
@@ -251,16 +235,15 @@
                             throw new Error(`Could only extract ${realWords.length} real words from the uploaded list, need ${wordsToPick}.`);
                         }
                     }
-
-                    // --- STEP 2: Get Fake Words from File ---
-                    // Pass the calculated min/max length for fake words
+                    */
+                    // gets fake words
                     const fakeWords = await generateFakeWords(fakeMinLength, fakeMaxLength, wordsToPick);
 
                     if (fakeWords.length === 0) {
-                        throw new Error("Failed to generate 'Fake' words from file. Check the external fake word list URL.");
+                        throw new Error("Failed to get 'Fake' words from file. Check the external fake word list URL.");
                     }
 
-                    // --- STEP 3: Combine and Shuffle ---
+                    // shuffle em up
                     const finalCount = Math.min(realWords.length, fakeWords.length);
                     const finalRealWords = realWords.slice(0, finalCount);
                     const finalFakeWords = fakeWords.slice(0, finalCount);
@@ -278,11 +261,10 @@
                             isReal: false,
                             correct: null,
                             userGuess: null,
-                            source: 'FILE' // Changed source from 'AI' to 'FILE'
+                            source: 'FILE' 
                         })),
                     ];
 
-                    // Randomly shuffle the order
                     for (let i = combinedList.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [combinedList[i], combinedList[j]] = [combinedList[j], combinedList[i]];
@@ -302,7 +284,7 @@
             }, [wordConfig, wordsToPick, uploadedDictionary]);
 
 
-            // Step 6: Player input and scoring
+            // to get scoring and also for the player input which is the [ ]
             const handleGuess = useCallback((guessIsReal) => {
                 if (status !== 'PLAYING') return;
 
@@ -315,22 +297,22 @@
                 );
                 setTrainingList(updatedList);
 
-                // Check if game is over
+                // check if game is over
                 if (currentWordIndex < updatedList.length - 1) {
                     setCurrentWordIndex(prev => prev + 1);
                 } else {
-                    setStatus('REPORT'); // End of game
+                    setStatus('REPORT');
                 }
             }, [status, currentWord, trainingList, currentWordIndex]);
 
-            // Keyboard controls for [ and ]
+            // keybopard controls
             useEffect(() => {
                 const handleKeyDown = (event) => {
                     if (status === 'PLAYING') {
                         if (event.key === '[') {
-                            handleGuess(true); // Real
+                            handleGuess(true); 
                         } else if (event.key === ']') {
-                            handleGuess(false); // Fake
+                            handleGuess(false); 
                         }
                     }
                 };
@@ -339,7 +321,7 @@
                 return () => window.removeEventListener('keydown', handleKeyDown);
             }, [status, handleGuess]);
 
-            // Memoize results for the report screen
+            // keep results for the report screen
             const results = useMemo(() => {
                 if (status !== 'REPORT' || trainingList.length === 0) return null;
 
@@ -347,11 +329,11 @@
                 const correct = trainingList.filter(item => item.correct).length;
                 const accuracy = total > 0 ? (correct / total * 100).toFixed(1) : 0;
 
-                // Detailed breakdown
+                // detailed breakdown of how the player did
                 const allWords = trainingList.map((item, index) => ({
                     id: index,
                     word: item.word,
-                    type: item.isReal ? `Real (${item.source})` : 'Fake (File)', // Updated source in report
+                    type: item.isReal ? `Real (${item.source})` : 'Fake (File)', 
                     isCorrect: item.correct,
                     userGuess: item.userGuess,
                     correctAnswer: item.isReal ? 'Real' : 'Fake'
@@ -367,9 +349,7 @@
                 };
             }, [status, trainingList]);
 
-            // --- RENDER FUNCTIONS ---
 
-            // Renders Step 1 & 2 (Setup)
             const renderSetup = () => (
                 <div className="space-y-8">
                     <h2 className="text-3xl font-extrabold text--400 flex items-center">
@@ -379,11 +359,10 @@
                         Valid words for all fixed lengths (2-8) are sourced from the Collins Dictionary (International Scrabble).
                     </p>
 
-                    {/* Word Length Selection */}
                     <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">Word Source & Length</label>
                         <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-4 gap-3">
-                            {WORD_LENGTH_OPTIONS.map((option, index) => (
+                            {wordlength.map((option, index) => (
                                 <button
                                     key={option.label}
                                     onClick={() => setSelectedLengthIndex(index)}
@@ -398,21 +377,22 @@
                                 </button>
                             ))}
                         </div>
-                        {/* External List URL Warning */}
-                        {wordConfig.source.startsWith('EXTERNAL') && EXTERNAL_URL_MAP[wordConfig.source].includes("example.com") && (
+
+                        {wordConfig.source.startsWith('EXTERNAL') && wordlists[wordConfig.source].includes("example.com") && (
                             <p className="text-sm text-yellow-500 mt-2 flex items-center">
-                                <Link className="w-4 h-4 mr-2" /> WARNING: Placeholder URL active. Please update `EXTERNAL_URL_MAP`.
+                                <Link className="w-4 h-4 mr-2" /> WARNING: Placeholder URL active. Please update `wordlists`.
                             </p>
                         )}
-                        {/* Fake List URL Warning */}
-                        {EXTERNAL_URL_MAP['EXTERNAL_FAKE_LIST'].includes("user/repo/branch/fake_words.txt") && (
+
+                        {wordlists['EXTERNAL_FAKE_LIST'].includes("user/repo/branch/fake_words.txt") && (
                             <p className="text-sm text-yellow-500 mt-2 flex items-center">
                                 <Link className="w-4 h-4 mr-2" /> WARNING: Fake word list URL is a placeholder. Please update `EXTERNAL_FAKE_LIST`.
                             </p>
                         )}
                     </div>
 
-                    {/* Custom Upload Input */}
+                    {/* custom upload (YET AGAIN, redundant but keeping here if i ever need it again */}
+{/*
                     {isCustomUploadSelected && (
                         <div className="space-y-3 p-4 bg-gray-800 rounded-lg border border-gray-700">
                             <label className="block text-sm font-medium text-gray-300 flex items-center">
@@ -437,8 +417,10 @@
                             )}
                         </div>
                     )}
+*/}
+                    
 
-                    {/* Word Count Slider */}
+                    {/* slider */}
                     <div>
                         <label htmlFor="wordCount" className="block text-sm font-medium text-gray-300 mb-2">
                             Total Words to Practice: <span className="font-bold text-red-400">{wordCount}</span> (Starting {wordsToPick} Real / {wordsToPick} Fake)
@@ -459,7 +441,7 @@
                         </div>
                     </div>
 
-                    {/* Error Message */}
+                    {/* error msgs */}
                     {error && (
                         <div className="p-4 bg-red-900/50 border border-red-700 text-red-300 rounded-lg">
                             **Error:** {error}
@@ -481,7 +463,6 @@
                 </div>
             );
 
-            // Renders 'GENERATING' status
             const renderGenerating = () => (
                 <div className="flex flex-col items-center justify-center space-y-4 py-20">
                     <Loader className="animate-spin h-10 w-10 text-red-400" />
@@ -494,7 +475,6 @@
                 </div>
             );
 
-            // Renders Step 6 (Playing)
             const renderPlaying = () => (
                 <div className="flex flex-col items-center space-y-12">
                     <div className="text-center">
@@ -506,14 +486,12 @@
                         </p>
                     </div>
 
-                    {/* The Word Tile */}
                     <div className="bg-gray-800 p-8 rounded-xl shadow-2xl min-w-[300px] transform transition duration-200 border-4 border-gray-700">
                         <h1 className="text-7xl font-mono tracking-widest text-white uppercase select-none">
                             {currentWord ? currentWord.word : '...'}
                         </h1>
                     </div>
 
-                    {/* Action Buttons */}
                     <div className="flex space-x-6 w-full max-w-lg">
                         <button
                             onClick={() => handleGuess(true)}
@@ -534,7 +512,6 @@
                 </div>
             );
 
-            // Renders Step 7 (Report)
             const renderReport = () => (
                 <div className="space-y-8">
                     <h2 className="text-4xl font-extrabold text-red-400 text-center">
@@ -584,7 +561,6 @@
                 </div>
             );
 
-            // --- MAIN RENDER ---
 
             let content;
             switch (status) {
@@ -621,7 +597,6 @@
             );
         };
 
-        // Standard React rendering step
         const container = document.getElementById('root');
         const root = ReactDOM.createRoot(container);
         root.render(<App />);
